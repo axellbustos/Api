@@ -158,7 +158,7 @@ const moviesController = {
     },
     recomended: async (req, res) => {
         const { limit } = req.query;
-        const option ={
+        const option = {
             include: [
                 {
                     association: 'genre',
@@ -182,7 +182,7 @@ const moviesController = {
             limit: limit ? +limit : 5
         }
         try {
-            const movies= await db.Movie.findAll(option)
+            const movies = await db.Movie.findAll(option)
             const moviesModify = movies.map(movie => {
                 return {
                     ...movie.dataValues,
@@ -205,51 +205,130 @@ const moviesController = {
                 msg: error.message,
             });
         }
-        
+
     },
+
     //Aqui dispongo las rutas para trabajar con el CRUD
-    create: function (req, res) {
-        Movies.create({
-            title: req.body.title,
-            rating: req.body.rating,
-            awards: req.body.awards,
-            release_date: req.body.release_date,
-            length: req.body.length,
-            genre_id: req.body.genre_id,
-        })
-            .then(() => {
-                return res.redirect("/movies");
+
+    create: async function (req, res) {
+        const { title, rating, awards, release_date, length, genre_id } = req.body
+        try {
+            const movie = await db.Movie.create({
+                title: title?.trim(),
+                rating,
+                awards,
+                release_date,
+                length,
+                genre_id
             })
-            .catch((error) => res.send(error));
-    },
-    update: function (req, res) {
-        let movieId = req.params.id;
-        Movies.update(
-            {
-                title: req.body.title,
-                rating: req.body.rating,
-                awards: req.body.awards,
-                release_date: req.body.release_date,
-                length: req.body.length,
-                genre_id: req.body.genre_id,
-            },
-            {
-                where: { id: movieId },
-            }
-        )
-            .then(() => {
-                return res.redirect("/movies");
+
+            return res.status(201).json({
+                ok: true,
+                meta: {
+                    status: 201,
+                },
+                data: {
+                    movie
+                }
             })
-            .catch((error) => res.send(error));
-    },
-    destroy: function (req, res) {
-        let movieId = req.params.id;
-        Movies.destroy({ where: { id: movieId }, force: true }) // force: true es para asegurar que se ejecute la acción
-            .then(() => {
-                return res.redirect("/movies");
+        } catch (error) {
+            console.log(error);
+            const showErrors = error.errors.map(error => {
+                return {
+                    path: error.path,
+                    message: error.message
+                }
             })
-            .catch((error) => res.send(error));
+            return res.status(error.status || 500).json({
+                ok: false,
+                error: showErrors,
+            });
+        }
+
     },
+    update: async function (req, res) {
+        const { title, rating, awards, release_date, length, genre_id } = req.body
+        try {
+            let movieId = req.params.id;
+            await db.Movie.update(
+                {
+                    title: title?.trim(),
+                    rating,
+                    awards,
+                    release_date,
+                    length,
+                    genre_id,
+                },
+                {
+                    where: { id: movieId },
+                }
+            )
+            let movie = await db.Movie.findByPk(movieId)
+
+            return res.status(201).json({
+                ok: true,
+                meta: {
+                    status: 201,
+                },
+                msg:"Pelicula actualizada con exito",
+                data: movie
+
+            })
+        } catch (error) {
+            console.log(error);
+            const showErrors = error.errors.map(error => {
+                return {
+                    path: error.path,
+                    message: error.message
+                }
+            })
+            return res.status(error.status || 500).json({
+                ok: false,
+                error: showErrors,
+            });
+        }
+
+    },
+    destroy: async function (req, res) {
+        try {
+            let movieId = req.params.id;
+            await db.Actor.update(
+                {
+                    favorite_movie_id: null
+                },
+                {
+                    where:{
+                        favorite_movie_id: movieId
+                    }
+                }
+            )
+
+            await db.ActorMovie.destroy({
+                where:{
+                    movie_id : movieId
+                }
+            })
+            await db.Movie.destroy({
+                where: {
+                    id: movieId
+                },
+                force: true  // force: true es para asegurar que se ejecute la acción
+            })
+            return res.status(201).json({
+                ok: true,
+                meta: {
+                    status: 201,
+                },
+                msg:"Pelicula eliminada con exito"
+
+            })
+        } catch (error) {
+            return res.status(error.status || 500).json({
+                ok: false,
+                message: error.message || "Ups, algo ha salido mal!!!",
+            });
+        }
+},
 };
 
 module.exports = moviesController;
