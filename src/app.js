@@ -8,6 +8,7 @@ const app = express();
 const indexRouter = require('./routes/index');
 const moviesRoutes = require('./routes/moviesRoutes');
 const genresRoutes = require('./routes/genresRoutes');
+const actorsRoutes = require('./routes/actorsRoutes');
 
 //Aquí pueden colocar las rutas de las APIs
 
@@ -27,7 +28,7 @@ app.use(methodOverride('_method'));
 app.use('/', indexRouter);
 app.use(moviesRoutes);
 app.use(genresRoutes);
-
+app.use(actorsRoutes);
 //mostrar mensaje si la ruta es incorrecta
 app.use('*', (req, res)=> res.status(404).json({msg : 'ruta no encontrada'}))
 
